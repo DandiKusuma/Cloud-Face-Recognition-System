@@ -43,3 +43,14 @@ def check_face():
         "result": "FACE_OK",
         "name": "Dandi"
     })
+
+@app.route("/log_access", methods=["POST"])
+def log_access():
+
+    data = request.json
+
+    print("LOG MASUK:", data)
+
+    return jsonify({
+        "status": "ok"
+    })
