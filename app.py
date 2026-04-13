@@ -36,3 +36,10 @@ def remote_status(door_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+@app.route("/check_face", methods=["POST"])
+def check_face():
+    return jsonify({
+        "result": "FACE_OK",
+        "name": "Dandi"
+    })
