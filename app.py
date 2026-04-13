@@ -1,17 +1,4 @@
-import face_recognition
-import numpy as np
-import cv2
-import pickle
-
 from flask import Flask, request, jsonify
-
-ENCODING_FILE = "encodings.pkl"
-
-with open(ENCODING_FILE, "rb") as f:
-    data = pickle.load(f)
-
-known_encodings = data["encodings"]
-known_names = data["names"]
 
 app = Flask(__name__)
 
