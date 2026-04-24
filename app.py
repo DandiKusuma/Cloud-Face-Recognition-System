@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import sqlite3
 from datetime import datetime
+from flask import render_template_string
 
 app = Flask(__name__)
 
@@ -115,3 +116,57 @@ def get_logs():
         })
 
     return jsonify(data)
+
+@app.route("/")
+def dashboard():
+    conn = sqlite3.connect("access_log.db")
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM logs ORDER BY id DESC")
+    rows = c.fetchall()
+
+    conn.close()
+
+    html = """
+    <html>
+    <head>
+        <title>Access Log Dashboard</title>
+        <style>
+            body { font-family: Arial; background: #111; color: #fff; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { padding: 10px; border: 1px solid #444; text-align: center; }
+            th { background: #222; }
+            tr:nth-child(even) { background: #1a1a1a; }
+            h1 { text-align: center; }
+        </style>
+    </head>
+    <body>
+        <h1>DOOR ACCESS LOG</h1>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Door</th>
+                <th>Name</th>
+                <th>UID</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Time</th>
+            </tr>
+    """
+
+    for row in rows:
+        html += f"""
+        <tr>
+            <td>{row[0]}</td>
+            <td>{row[1]}</td>
+            <td>{row[2]}</td>
+            <td>{row[3]}</td>
+            <td>{row[4]}</td>
+            <td>{row[5]}</td>
+            <td>{row[6]}</td>
+        </tr>
+        """
+
+    html += "</table></body></html>"
+
+    return html
