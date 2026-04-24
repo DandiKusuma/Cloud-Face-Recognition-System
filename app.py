@@ -117,7 +117,7 @@ def get_logs():
 
     return jsonify(data)
 
-@app.route("/")
+@app.route("/riwayat")
 def dashboard():
     conn = sqlite3.connect("access_log.db")
     c = conn.cursor()
