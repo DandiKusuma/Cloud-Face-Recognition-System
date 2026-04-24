@@ -91,3 +91,27 @@ def log_access():
 
     return jsonify({"status": "success"})
     return jsonify({"status": "success"})
+
+@app.route("/logs", methods=["GET"])
+def get_logs():
+    conn = sqlite3.connect("access_log.db")
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM logs ORDER BY id DESC")
+    rows = c.fetchall()
+
+    conn.close()
+
+    data = []
+    for row in rows:
+        data.append({
+            "id": row[0],
+            "door_id": row[1],
+            "name": row[2],
+            "card_uid": row[3],
+            "method": row[4],
+            "status": row[5],
+            "timestamp": row[6]
+        })
+
+    return jsonify(data)
