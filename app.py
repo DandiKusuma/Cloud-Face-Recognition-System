@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+import sqlite3
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -7,6 +9,27 @@ doors = {
     "door2": {"username": "admin2", "password": "5678", "unlock": False},
     "door3": {"username": "admin3", "password": "9999", "unlock": False},
 }
+
+def init_db():
+    conn = sqlite3.connect("access_log.db")
+    c = conn.cursor()
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            door_id TEXT,
+            name TEXT,
+            card_uid TEXT,
+            method TEXT,
+            status TEXT,
+            timestamp TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+init_db()
 
 @app.route("/")
 def home():
@@ -48,6 +71,23 @@ def check_face():
 def log_access():
     data = request.json
 
-    print("LOG MASUK:", data)
+    conn = sqlite3.connect("access_log.db")
+    c = conn.cursor()
 
+    c.execute('''
+        INSERT INTO logs (door_id, name, card_uid, method, status, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (
+        data.get("door_id"),
+        data.get("name"),
+        data.get("card_uid"),
+        data.get("method"),
+        data.get("status"),
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"status": "success"})
     return jsonify({"status": "success"})
