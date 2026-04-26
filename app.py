@@ -131,6 +131,13 @@ def dashboard():
     <html>
     <head>
         <title>Access Log Dashboard</title>
+        
+        <script>
+        setInterval(() => {
+        location.reload();
+        }, 3000);
+        </script>
+        
         <style>
             body { font-family: Arial; background: #111; color: #fff; }
             table { border-collapse: collapse; width: 100%; }
@@ -155,6 +162,13 @@ def dashboard():
     """
 
     for row in rows:
+        if row[4] == "RFID_ONLY":
+            status_color = "yellow"
+        elif row[5] == "ACCESS_GRANTED":
+            status_color = "lime"
+        else:
+            status_color = "red"
+        
         html += f"""
         <tr>
             <td>{row[0]}</td>
@@ -162,7 +176,7 @@ def dashboard():
             <td>{row[2]}</td>
             <td>{row[3]}</td>
             <td>{row[4]}</td>
-            <td>{row[5]}</td>
+            <td><td style="color:{status_color}">{row[5]}</td>
             <td>{row[6]}</td>
         </tr>
         """
