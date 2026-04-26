@@ -156,7 +156,7 @@ def dashboard():
     c = conn.cursor()
 
     if "login" not in session:
-    return redirect("/login")
+        return redirect("/login")
 
     c.execute("SELECT * FROM logs ORDER BY id DESC")
     rows = c.fetchall()
