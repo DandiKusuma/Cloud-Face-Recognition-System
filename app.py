@@ -133,9 +133,9 @@ def dashboard():
         <title>Access Log Dashboard</title>
         
         <script>
-        setInterval(() => {
+        setInterval(() => {{
         location.reload();
-        }, 3000);
+        }}, 3000);
         </script>
         
         <style>
