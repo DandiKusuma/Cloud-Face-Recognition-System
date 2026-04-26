@@ -27,23 +27,24 @@ def init_db():
             timestamp TEXT
         )
     ''')
-    
+
+    # ================= TAMBAHAN USERS (PINDAH KE SINI) =================
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    ''')
+
+    c.execute("SELECT * FROM users WHERE username='admin'")
+    if not c.fetchone():
+        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
+                  ("admin", "admin123"))
+
     conn.commit()
     conn.close()
 
-init_db()
-c.execute('''
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT
-)
-''')
-
-c.execute("SELECT * FROM users WHERE username='admin'")
-if not c.fetchone():
-    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
-              ("admin", "admin123"))
 
 @app.route("/")
 def home():
@@ -212,7 +213,7 @@ def dashboard():
             <td>{row[2]}</td>
             <td>{row[3]}</td>
             <td>{row[4]}</td>
-            <td><td style="color:{status_color}">{row[5]}</td>
+            <td style="color:{status_color}">{row[5]}</td>
             <td>{row[6]}</td>
         </tr>
         """
