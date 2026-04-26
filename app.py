@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session, redirect, url_for
 import sqlite3
 from datetime import datetime
 from flask import render_template_string
 
 app = Flask(__name__)
+app.secret_key = "secret123"
 
 doors = {
     "door1": {"username": "admin1", "password": "1234", "unlock": False},
@@ -31,23 +32,55 @@ def init_db():
     conn.close()
 
 init_db()
+c.execute('''
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT
+)
+''')
+
+c.execute("SELECT * FROM users WHERE username='admin'")
+if not c.fetchone():
+    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
+              ("admin", "admin123"))
 
 @app.route("/")
 def home():
     return "Cloud Server Running"
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    data = request.json
-    door_id = data.get("door_id")
-    username = data.get("username")
-    password = data.get("password")
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-    if door_id in doors:
-        if doors[door_id]["username"] == username and doors[door_id]["password"] == password:
-            doors[door_id]["unlock"] = True
-            return jsonify({"status": "success"})
-    return jsonify({"status": "failed"})
+        conn = sqlite3.connect("access_log.db")
+        c = conn.cursor()
+
+        c.execute("SELECT * FROM users WHERE username=? AND password=?", 
+                  (username, password))
+        user = c.fetchone()
+        conn.close()
+
+        if user:
+            session["login"] = True
+            return redirect("/")
+        else:
+            return "Login gagal"
+
+    return """
+    <html>
+    <body style="background:#111;color:white;text-align:center;">
+        <h2>LOGIN ADMIN</h2>
+        <form method="POST">
+            <input name="username" placeholder="Username"><br><br>
+            <input name="password" type="password" placeholder="Password"><br><br>
+            <button type="submit">Login</button>
+        </form>
+    </body>
+    </html>
+    """
 
 @app.route("/remote_status/<door_id>")
 def remote_status(door_id):
@@ -122,6 +155,9 @@ def dashboard():
     conn = sqlite3.connect("access_log.db")
     c = conn.cursor()
 
+    if "login" not in session:
+    return redirect("/login")
+
     c.execute("SELECT * FROM logs ORDER BY id DESC")
     rows = c.fetchall()
 
@@ -184,3 +220,8 @@ def dashboard():
     html += "</table></body></html>"
 
     return html
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
