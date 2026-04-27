@@ -1,10 +1,16 @@
 from flask import Flask, request, jsonify, session, redirect, url_for
 import sqlite3
 from datetime import datetime
-from flask import render_template_string
+import os
 
 app = Flask(__name__)
 app.secret_key = "secret123"
+
+# ===== DEBUG BIAR ERROR KELIHATAN =====
+app.config['PROPAGATE_EXCEPTIONS'] = True
+
+# ===== DATABASE PATH FIX =====
+DB_PATH = os.path.join(os.getcwd(), "access_log.db")
 
 doors = {
     "door1": {"username": "admin1", "password": "1234", "unlock": False},
@@ -12,8 +18,9 @@ doors = {
     "door3": {"username": "admin3", "password": "9999", "unlock": False},
 }
 
+# ===== INIT DB =====
 def init_db():
-    conn = sqlite3.connect("access_log.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     c.execute('''
@@ -28,13 +35,12 @@ def init_db():
         )
     ''')
 
-    # ================= TAMBAHAN USERS (PINDAH KE SINI) =================
     c.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT
+        )
     ''')
 
     c.execute("SELECT * FROM users WHERE username='admin'")
@@ -45,44 +51,53 @@ def init_db():
     conn.commit()
     conn.close()
 
-
+# ===== HOME =====
 @app.route("/")
 def home():
     return "Cloud Server Running"
 
+# ===== LOGIN FIX =====
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+    try:
+        if request.method == "POST":
+            username = request.form.get("username")
+            password = request.form.get("password")
 
-        conn = sqlite3.connect("access_log.db")
-        c = conn.cursor()
+            print("LOGIN:", username, password)
 
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", 
-                  (username, password))
-        user = c.fetchone()
-        conn.close()
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
 
-        if user:
-            session["login"] = True
-            return redirect("/")
-        else:
-            return "Login gagal"
+            c.execute("SELECT * FROM users WHERE username=? AND password=?", 
+                      (username, password))
+            user = c.fetchone()
+            conn.close()
 
-    return """
-    <html>
-    <body style="background:#111;color:white;text-align:center;">
-        <h2>LOGIN ADMIN</h2>
-        <form method="POST">
-            <input name="username" placeholder="Username"><br><br>
-            <input name="password" type="password" placeholder="Password"><br><br>
-            <button type="submit">Login</button>
-        </form>
-    </body>
-    </html>
-    """
+            print("USER RESULT:", user)
 
+            if user:
+                session["login"] = True
+                return redirect("/riwayat")
+            else:
+                return "Login gagal"
+
+        return """
+        <html>
+        <body style="background:#111;color:white;text-align:center;">
+            <h2>LOGIN ADMIN</h2>
+            <form method="POST">
+                <input name="username" placeholder="Username"><br><br>
+                <input name="password" type="password" placeholder="Password"><br><br>
+                <button type="submit">Login</button>
+            </form>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"ERROR LOGIN: {str(e)}"
+
+# ===== REMOTE =====
 @app.route("/remote_status/<door_id>")
 def remote_status(door_id):
     if door_id in doors:
@@ -92,6 +107,7 @@ def remote_status(door_id):
         return jsonify({"unlock": False})
     return jsonify({"unlock": False})
 
+# ===== FACE MOCK =====
 @app.route("/check_face", methods=["POST"])
 def check_face():
     return jsonify({
@@ -99,34 +115,38 @@ def check_face():
         "name": "Dandi"
     })
 
+# ===== LOG ACCESS FIX =====
 @app.route("/log_access", methods=["POST"])
 def log_access():
-    data = request.json
+    try:
+        data = request.json
 
-    conn = sqlite3.connect("access_log.db")
-    c = conn.cursor()
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
 
-    c.execute('''
-        INSERT INTO logs (door_id, name, card_uid, method, status, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (
-        data.get("door_id"),
-        data.get("name"),
-        data.get("card_uid"),
-        data.get("method"),
-        data.get("status"),
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    ))
+        c.execute('''
+            INSERT INTO logs (door_id, name, card_uid, method, status, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data.get("door_id"),
+            data.get("name"),
+            data.get("card_uid"),
+            data.get("method"),
+            data.get("status"),
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-    return jsonify({"status": "success"})
-    return jsonify({"status": "success"})
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
+# ===== API LOG =====
 @app.route("/logs", methods=["GET"])
 def get_logs():
-    conn = sqlite3.connect("access_log.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     c.execute("SELECT * FROM logs ORDER BY id DESC")
@@ -148,13 +168,14 @@ def get_logs():
 
     return jsonify(data)
 
+# ===== DASHBOARD =====
 @app.route("/riwayat")
 def dashboard():
-    conn = sqlite3.connect("access_log.db")
-    c = conn.cursor()
-
     if "login" not in session:
         return redirect("/login")
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
 
     c.execute("SELECT * FROM logs ORDER BY id DESC")
     rows = c.fetchall()
@@ -165,13 +186,11 @@ def dashboard():
     <html>
     <head>
         <title>Access Log Dashboard</title>
-        
         <script>
-        setInterval(() => {{
-        location.reload();
-        }}, 3000);
+        setInterval(() => {
+            location.reload();
+        }, 3000);
         </script>
-        
         <style>
             body { font-family: Arial; background: #111; color: #fff; }
             table { border-collapse: collapse; width: 100%; }
@@ -216,14 +235,16 @@ def dashboard():
         """
 
     html += "</table></body></html>"
-
     return html
 
+# ===== LOGOUT =====
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
+# ===== START SERVER =====
 if __name__ == "__main__":
     init_db()
+    print("DATABASE READY")
     app.run(host="0.0.0.0", port=5000)
