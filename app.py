@@ -12,6 +12,9 @@ app.config['PROPAGATE_EXCEPTIONS'] = True
 # ===== DATABASE PATH FIX =====
 DB_PATH = os.path.join(os.getcwd(), "access_log.db")
 
+init_db()
+print("DB AUTO INIT JALAN")
+
 doors = {
     "door1": {"username": "admin1", "password": "1234", "unlock": False},
     "door2": {"username": "admin2", "password": "5678", "unlock": False},
