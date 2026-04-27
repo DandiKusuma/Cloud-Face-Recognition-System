@@ -22,6 +22,8 @@ doors = {
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+
+    print("INIT DB JALAN...")
     
     c.execute('''
         CREATE TABLE IF NOT EXISTS logs (
@@ -44,13 +46,21 @@ def init_db():
     ''')
 
     c.execute("SELECT * FROM users WHERE username='admin'")
-    if not c.fetchone():
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
-                  ("admin", "admin123"))
+    user = c.fetchone()
+
+    if user is None:
+        print("INSERT ADMIN USER")
+        c.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)",
+            ("admin", "admin123")
+        )
+    else:
+        print("ADMIN SUDAH ADA")
 
     conn.commit()
     conn.close()
 
+    print("DB SIAP")
 # ===== HOME =====
 @app.route("/")
 def home():
